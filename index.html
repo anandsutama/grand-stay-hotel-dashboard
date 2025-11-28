@@ -1,0 +1,1402 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Stay Hotel - Staff Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* --- 1. SETUP & VISUAL STYLE (From Claireview Image) --- */
+        :root {
+            --bg-lavender: #E6E6FA;       /* Background Utama */
+            --bg-white: #FFFFFF;          /* Card Background */
+            --primary-green: #1A4D3E;     /* Warna Utama (Text & Button) */
+            --hover-green: #143b30;       /* Hover State */
+            --text-grey: #555555;         /* Secondary Text */
+            --accent-gold: #D4AF37;       /* Status Accent */
+            --status-red: #e74c3c;
+            --status-green: #27ae60;
+            --status-orange: #f39c12;
+            --status-blue: #3498db;
+            --shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-lavender);
+            color: var(--primary-green);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1, h2, h3 {
+            font-family: 'Georgia', serif; /* Serif font sesuai gambar */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- 2. SIDEBAR NAVIGATION --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--primary-green);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .nav-item {
+            padding: 15px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: 0.3s;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: rgba(255,255,255,0.15);
+            color: white;
+            font-weight: 600;
+        }
+
+        /* --- 3. MAIN CONTENT AREA --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .user-profile {
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logout-btn {
+            font-size: 12px;
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+
+        .logout-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+
+        /* --- 4. MODULES / SECTIONS --- */
+        .section {
+            display: none; /* Hidden by default */
+            animation: fadeIn 0.4s ease;
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .section.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--bg-white);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary-green);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            font-size: 12px;
+            color: var(--text-grey);
+            margin-bottom: 10px;
+            font-family: sans-serif; /* Override serif for small labels */
+            font-weight: 600;
+        }
+
+        .card .value {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-green);
+        }
+
+        /* Tables (Reservations, Vendors) */
+        .data-table-container {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .table-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 200px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 2px solid #eee;
+            color: var(--text-grey);
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            color: #333;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+        .status-confirmed { background: #e8f5e9; color: var(--status-green); }
+        .status-pending { background: #fff3e0; color: var(--status-orange); }
+        .status-dirty { background: #ffebee; color: var(--status-red); }
+        .status-clean { background: #e8f5e9; color: var(--status-green); }
+        .status-occupied { background: #e3f2fd; color: var(--status-blue); }
+
+        /* Action Buttons */
+        .btn {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn:hover { background-color: var(--hover-green); }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-green); color: var(--primary-green); }
+        .btn-outline:hover { background-color: rgba(26, 77, 62, 0.1); }
+        .btn-sm { padding: 5px 10px; font-size: 11px; }
+        .btn-danger { background-color: var(--status-red); }
+        .btn-danger:hover { background-color: #c0392b; }
+
+        /* Room Grid (Housekeeping) */
+        .room-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .room-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .room-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .room-card.dirty { border-top: 4px solid var(--status-red); }
+        .room-card.clean { border-top: 4px solid var(--status-green); }
+        .room-card.occupied { border-top: 4px solid var(--status-blue); background-color: #f0f4c3; }
+        .room-card.maintenance { border-top: 4px solid var(--status-orange); background-color: #fff3e0; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+            color: #777;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-grey);
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-grey);
+            font-style: italic;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .alert-success {
+            background-color: #e8f5e9;
+            color: var(--status-green);
+            border-left: 4px solid var(--status-green);
+        }
+
+        .alert-error {
+            background-color: #ffebee;
+            color: var(--status-red);
+            border-left: 4px solid var(--status-red);
+        }
+
+        .close-alert {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                height: auto;
+                overflow: auto;
+            }
+            
+            .sidebar {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .nav-links {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .table-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="brand">
+            <i class="fas fa-hotel"></i> GRAND STAY<br><span style="font-size:12px; font-weight:400; font-family:serif;">Hotel Management</span>
+        </div>
+        <nav class="nav-links">
+            <div class="nav-item active" onclick="showSection('dashboard', this)">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </div>
+            <div class="nav-item" onclick="showSection('reservations', this)">
+                <i class="fas fa-calendar-check"></i> Reservations
+            </div>
+            <div class="nav-item" onclick="showSection('housekeeping', this)">
+                <i class="fas fa-broom"></i> Housekeeping
+            </div>
+            <div class="nav-item" onclick="showSection('vendors', this)">
+                <i class="fas fa-truck"></i> Vendor Portal
+            </div>
+            <div class="nav-item" onclick="showSection('billing', this)">
+                <i class="fas fa-file-invoice-dollar"></i> Billing & Finance
+            </div>
+            <div class="nav-item" onclick="showSection('reports', this)">
+                <i class="fas fa-chart-bar"></i> Reports & Analytics
+            </div>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        
+        <div class="header">
+            <h2 id="page-title">Operational Overview</h2>
+            <div class="user-profile">
+                <i class="fas fa-user-circle"></i>
+                <span>Welcome, Front Desk</span>
+                <span class="logout-btn" onclick="logout()">Log Out</span>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section active">
+            <div class="kpi-grid">
+                <div class="card">
+                    <h3>Occupancy Rate</h3>
+                    <div class="value">85%</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">+5% from last week</div>
+                </div>
+                <div class="card">
+                    <h3>Arrivals Today</h3>
+                    <div class="value">12</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">3 VIP guests</div>
+                </div>
+                <div class="card">
+                    <h3>Departures Today</h3>
+                    <div class="value">8</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">2 late check-outs</div>
+                </div>
+                <div class="card">
+                    <h3>Pending Tasks</h3>
+                    <div class="value" style="color:var(--status-red)">5</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">2 high priority</div>
+                </div>
+                <div class="card">
+                    <h3>Est. Revenue</h3>
+                    <div class="value">RM 15k</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">Today's projection</div>
+                </div>
+                <div class="card">
+                    <h3>Guest Satisfaction</h3>
+                    <div class="value">94%</div>
+                    <div style="font-size:12px; color:#777; margin-top:5px;">Based on 42 reviews</div>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>Recent Notifications</h3>
+                    <div class="table-controls">
+                        <button class="btn btn-sm" onclick="markAllAsRead()">
+                            <i class="fas fa-check-double"></i> Mark All as Read
+                        </button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Alert Type</th>
+                            <th>Details</th>
+                            <th>Priority</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>10:05 AM</td>
+                            <td><span class="status-badge status-pending">New Booking</span></td>
+                            <td>Guest John Doe booked Suite (Provisional)</td>
+                            <td><i class="fas fa-flag" style="color: #f39c12;"></i> Medium</td>
+                            <td><button class="btn btn-sm">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>09:45 AM</td>
+                            <td><span class="status-badge status-dirty">Maintenance</span></td>
+                            <td>AC Repair needed in Room 302</td>
+                            <td><i class="fas fa-flag" style="color: #e74c3c;"></i> High</td>
+                            <td><button class="btn btn-sm">Assign</button></td>
+                        </tr>
+                        <tr>
+                            <td>09:30 AM</td>
+                            <td><span class="status-badge status-confirmed">Check-In</span></td>
+                            <td>Early check-in requested for Room 204</td>
+                            <td><i class="fas fa-flag" style="color: #3498db;"></i> Low</td>
+                            <td><button class="btn btn-sm">Approve</button></td>
+                        </tr>
+                        <tr>
+                            <td>08:15 AM</td>
+                            <td><span class="status-badge status-pending">Payment</span></td>
+                            <td>Invoice #INV-2025-001 overdue</td>
+                            <td><i class="fas fa-flag" style="color: #e74c3c;"></i> High</td>
+                            <td><button class="btn btn-sm">Remind</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-container">
+                <h3>Occupancy Trends</h3>
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-line" style="font-size: 48px; margin-right: 15px;"></i>
+                    Occupancy Rate Chart Visualization (85% This Week)
+                </div>
+            </div>
+        </div>
+
+        <!-- Reservations Section -->
+        <div id="reservations" class="section">
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>Guest Reservations</h3>
+                    <div class="table-controls">
+                        <input type="text" class="search-box" placeholder="Search reservations...">
+                        <button class="btn" onclick="openNewBookingModal()">
+                            <i class="fas fa-plus"></i> New Booking
+                        </button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Guest Name</th>
+                            <th>Room Type</th>
+                            <th>Check-In</th>
+                            <th>Check-Out</th>
+                            <th>Payment Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#GS-2024</td>
+                            <td>Alan Abakirov</td>
+                            <td>Deluxe King</td>
+                            <td>20 Nov 2025</td>
+                            <td>25 Nov 2025</td>
+                            <td><span class="status-badge status-confirmed">Paid</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">Check-In</button>
+                                <button class="btn btn-sm">Details</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#GS-2025</td>
+                            <td>Kulikova Yana</td>
+                            <td>Suite</td>
+                            <td>21 Nov 2025</td>
+                            <td>28 Nov 2025</td>
+                            <td><span class="status-badge status-pending">Unpaid (Prov)</span></td>
+                            <td>
+                                <button class="btn btn-sm">Invoice</button>
+                                <button class="btn btn-sm btn-outline">Edit</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#GS-2026</td>
+                            <td>Michael Chen</td>
+                            <td>Executive Suite</td>
+                            <td>22 Nov 2025</td>
+                            <td>24 Nov 2025</td>
+                            <td><span class="status-badge status-confirmed">Paid</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">Check-In</button>
+                                <button class="btn btn-sm">Details</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#GS-2027</td>
+                            <td>Sarah Johnson</td>
+                            <td>Standard Twin</td>
+                            <td>19 Nov 2025</td>
+                            <td>23 Nov 2025</td>
+                            <td><span class="status-badge status-confirmed">Paid</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">Extend Stay</button>
+                                <button class="btn btn-sm">Details</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Housekeeping Section -->
+        <div id="housekeeping" class="section">
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>Room Status Overview</h3>
+                    <div class="table-controls">
+                        <select class="form-control" style="width: auto;" onchange="filterRooms(this.value)">
+                            <option value="all">All Rooms</option>
+                            <option value="dirty">Dirty</option>
+                            <option value="clean">Clean</option>
+                            <option value="occupied">Occupied</option>
+                            <option value="maintenance">Maintenance</option>
+                        </select>
+                        <button class="btn" onclick="printRoomStatus()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                    </div>
+                </div>
+                <p style="margin-bottom:20px; font-size:13px; color:#666;">Click on a room to update status.</p>
+                <div class="room-grid" id="roomGrid">
+                    <!-- Rooms will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <h3>Housekeeping Schedule</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Room</th>
+                            <th>Status</th>
+                            <th>Housekeeper</th>
+                            <th>Estimated Time</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>102</td>
+                            <td><span class="status-badge status-dirty">Dirty</span></td>
+                            <td>Not Assigned</td>
+                            <td>45 min</td>
+                            <td>Today, 09:15 AM</td>
+                            <td><button class="btn btn-sm">Assign</button></td>
+                        </tr>
+                        <tr>
+                            <td>105</td>
+                            <td><span class="status-badge status-dirty">Dirty</span></td>
+                            <td>Maria Rodriguez</td>
+                            <td>30 min</td>
+                            <td>Today, 10:30 AM</td>
+                            <td><button class="btn btn-sm btn-outline">Reassign</button></td>
+                        </tr>
+                        <tr>
+                            <td>201</td>
+                            <td><span class="status-badge status-clean">Clean</span></td>
+                            <td>James Wilson</td>
+                            <td>Completed</td>
+                            <td>Today, 08:45 AM</td>
+                            <td><button class="btn btn-sm">Inspect</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vendors Section -->
+        <div id="vendors" class="section">
+            <div class="tabs">
+                <div class="tab active" onclick="openVendorTab('allVendors', this)">All Vendors</div>
+                <div class="tab" onclick="openVendorTab('pendingVendors', this)">Pending Approval</div>
+                <div class="tab" onclick="openVendorTab('services', this)">Service Logs</div>
+            </div>
+
+            <div id="allVendors" class="tab-content active">
+                <div class="data-table-container">
+                    <div class="table-header">
+                        <h3>Registered Vendors & Services</h3>
+                        <div class="table-controls">
+                            <button class="btn" onclick="openNewVendorModal()">
+                                <i class="fas fa-plus"></i> Add New Vendor
+                            </button>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Service Type</th>
+                                <th>Contact Person</th>
+                                <th>Phone</th>
+                                <th>Pending Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>CleanFast Laundry</td>
+                                <td>Laundry</td>
+                                <td>Robert Kim</td>
+                                <td>+1 (555) 123-4567</td>
+                                <td>RM 450.00</td>
+                                <td><span class="status-badge status-confirmed">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline">Log Job</button>
+                                    <button class="btn btn-sm">Pay</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>City Catering</td>
+                                <td>Food & Beverage</td>
+                                <td>Jennifer Lopez</td>
+                                <td>+1 (555) 234-5678</td>
+                                <td>RM 1,200.00</td>
+                                <td><span class="status-badge status-confirmed">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline">Log Job</button>
+                                    <button class="btn btn-sm">Pay</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>SafeRide Transport</td>
+                                <td>Shuttle Service</td>
+                                <td>Thomas Wayne</td>
+                                <td>+1 (555) 345-6789</td>
+                                <td>RM 0.00</td>
+                                <td><span class="status-badge status-pending">Pending Approval</span></td>
+                                <td>
+                                    <button class="btn btn-sm">Verify</button>
+                                    <button class="btn btn-sm btn-outline">Details</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>TechSolutions IT</td>
+                                <td>IT Support</td>
+                                <td>Alan Turing</td>
+                                <td>+1 (555) 456-7890</td>
+                                <td>RM 320.50</td>
+                                <td><span class="status-badge status-confirmed">Active</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline">Log Job</button>
+                                    <button class="btn btn-sm">Pay</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="pendingVendors" class="tab-content">
+                <div class="data-table-container">
+                    <h3>Vendors Pending Approval</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vendor Name</th>
+                                <th>Service Type</th>
+                                <th>Application Date</th>
+                                <th>Submitted By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>SafeRide Transport</td>
+                                <td>Shuttle Service</td>
+                                <td>15 Nov 2025</td>
+                                <td>John Manager</td>
+                                <td>
+                                    <button class="btn btn-sm">Approve</button>
+                                    <button class="btn btn-sm btn-outline">Review</button>
+                                    <button class="btn btn-sm btn-danger">Reject</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>GreenClean Supplies</td>
+                                <td>Cleaning Products</td>
+                                <td>14 Nov 2025</td>
+                                <td>Maria Rodriguez</td>
+                                <td>
+                                    <button class="btn btn-sm">Approve</button>
+                                    <button class="btn btn-sm btn-outline">Review</button>
+                                    <button class="btn btn-sm btn-danger">Reject</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="services" class="tab-content">
+                <div class="data-table-container">
+                    <h3>Recent Service Logs</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service ID</th>
+                                <th>Vendor</th>
+                                <th>Service Type</th>
+                                <th>Requested Date</th>
+                                <th>Completed Date</th>
+                                <th>Cost</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>#SVC-1001</td>
+                                <td>CleanFast Laundry</td>
+                                <td>Laundry Service</td>
+                                <td>18 Nov 2025</td>
+                                <td>19 Nov 2025</td>
+                                <td>RM 120.00</td>
+                                <td><span class="status-badge status-confirmed">Completed</span></td>
+                            </tr>
+                            <tr>
+                                <td>#SVC-1002</td>
+                                <td>City Catering</td>
+                                <td>Conference Catering</td>
+                                <td>20 Nov 2025</td>
+                                <td>-</td>
+                                <td>RM 850.00</td>
+                                <td><span class="status-badge status-pending">In Progress</span></td>
+                            </tr>
+                            <tr>
+                                <td>#SVC-1003</td>
+                                <td>TechSolutions IT</td>
+                                <td>Wi-Fi Repair</td>
+                                <td>19 Nov 2025</td>
+                                <td>19 Nov 2025</td>
+                                <td>RM 200.00</td>
+                                <td><span class="status-badge status-confirmed">Completed</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing Section -->
+        <div id="billing" class="section">
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>Billing & Invoices</h3>
+                    <div class="table-controls">
+                        <button class="btn" onclick="openNewInvoiceModal()">
+                            <i class="fas fa-plus"></i> Create Invoice
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; border:1px solid #eee; padding:20px; border-radius:8px;">
+                    <h4>Generate Guest Invoice</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Booking ID</label>
+                            <input type="text" class="form-control" placeholder="e.g., #GS-2024">
+                        </div>
+                        <div class="form-group">
+                            <label>Service Type</label>
+                            <select class="form-control">
+                                <option>Room Charge</option>
+                                <option>Restaurant</option>
+                                <option>Spa Service</option>
+                                <option>Laundry</option>
+                                <option>Late Check-out</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Amount (RM)</label>
+                            <input type="number" class="form-control" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea class="form-control" rows="2" placeholder="Service description..."></textarea>
+                    </div>
+                    <button class="btn" style="margin-top: 10px;">
+                        <i class="fas fa-plus"></i> Add to Invoice
+                    </button>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <h3>Recent Invoices</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Guest Name</th>
+                            <th>Amount</th>
+                            <th>Issue Date</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>#INV-2025-001</td>
+                            <td>Alan Abakirov</td>
+                            <td>RM 1,250.00</td>
+                            <td>15 Nov 2025</td>
+                            <td>22 Nov 2025</td>
+                            <td><span class="status-badge status-confirmed">Paid</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">View</button>
+                                <button class="btn btn-sm">PDF</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#INV-2025-002</td>
+                            <td>Kulikova Yana</td>
+                            <td>RM 2,400.00</td>
+                            <td>18 Nov 2025</td>
+                            <td>25 Nov 2025</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">View</button>
+                                <button class="btn btn-sm">Remind</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>#INV-2025-003</td>
+                            <td>Michael Chen</td>
+                            <td>RM 1,800.00</td>
+                            <td>19 Nov 2025</td>
+                            <td>26 Nov 2025</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-outline">View</button>
+                                <button class="btn btn-sm">Remind</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reports" class="section">
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>Reports & Analytics</h3>
+                    <div class="table-controls">
+                        <select class="form-control" style="width: auto;">
+                            <option>Last 7 Days</option>
+                            <option>Last 30 Days</option>
+                            <option>Last 3 Months</option>
+                            <option>Custom Range</option>
+                        </select>
+                        <button class="btn">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Revenue Overview</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-bar" style="font-size: 48px; margin-right: 15px;"></i>
+                        Revenue Chart Visualization (RM 15k This Week)
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Occupancy Rate</h3>
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-pie" style="font-size: 48px; margin-right: 15px;"></i>
+                        Occupancy Pie Chart (85% Occupied, 15% Available)
+                    </div>
+                </div>
+
+                <div class="data-table-container">
+                    <h3>Key Performance Indicators</h3>
+                    <div class="kpi-grid">
+                        <div class="card">
+                            <h3>Average Daily Rate</h3>
+                            <div class="value">RM 245</div>
+                            <div style="font-size:12px; color:#777; margin-top:5px;">+RM 15 from last month</div>
+                        </div>
+                        <div class="card">
+                            <h3>RevPAR</h3>
+                            <div class="value">RM 208</div>
+                            <div style="font-size:12px; color:#777; margin-top:5px;">Revenue Per Available Room</div>
+                        </div>
+                        <div class="card">
+                            <h3>Guest Satisfaction</h3>
+                            <div class="value">94%</div>
+                            <div style="font-size:12px; color:#777; margin-top:5px;">Based on 42 reviews</div>
+                        </div>
+                        <div class="card">
+                            <h3>Staff Productivity</h3>
+                            <div class="value">88%</div>
+                            <div style="font-size:12px; color:#777; margin-top:5px;">+5% from last week</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Booking Modal -->
+    <div id="newBookingModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Booking</h3>
+                <span class="close-modal" onclick="closeModal('newBookingModal')">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Guest Name</label>
+                <input type="text" class="form-control" placeholder="Enter guest name">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Check-In Date</label>
+                    <input type="date" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Check-Out Date</label>
+                    <input type="date" class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Room Type</label>
+                <select class="form-control">
+                    <option>Standard Twin</option>
+                    <option>Deluxe King</option>
+                    <option>Executive Suite</option>
+                    <option>Presidential Suite</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Special Requests</label>
+                <textarea class="form-control" rows="3" placeholder="Any special requests?"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="closeModal('newBookingModal')">Cancel</button>
+                <button class="btn" onclick="createBooking()">Create Booking</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Vendor Modal -->
+    <div id="newVendorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Vendor</h3>
+                <span class="close-modal" onclick="closeModal('newVendorModal')">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Vendor Name</label>
+                <input type="text" class="form-control" placeholder="Enter vendor name">
+            </div>
+            <div class="form-group">
+                <label>Service Type</label>
+                <select class="form-control">
+                    <option>Laundry</option>
+                    <option>Food & Beverage</option>
+                    <option>Transportation</option>
+                    <option>Maintenance</option>
+                    <option>IT Services</option>
+                    <option>Other</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Contact Person</label>
+                    <input type="text" class="form-control" placeholder="Contact name">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" class="form-control" placeholder="Phone number">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-control" placeholder="Email address">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-outline" onclick="closeModal('newVendorModal')">Cancel</button>
+                <button class="btn" onclick="addVendor()">Add Vendor</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample room data
+        const rooms = [
+            { number: '101', status: 'clean', type: 'Standard' },
+            { number: '102', status: 'dirty', type: 'Standard' },
+            { number: '103', status: 'occupied', type: 'Deluxe' },
+            { number: '104', status: 'clean', type: 'Deluxe' },
+            { number: '105', status: 'dirty', type: 'Suite' },
+            { number: '201', status: 'clean', type: 'Standard' },
+            { number: '202', status: 'maintenance', type: 'Standard' },
+            { number: '203', status: 'occupied', type: 'Deluxe' },
+            { number: '204', status: 'clean', type: 'Suite' },
+            { number: '205', status: 'occupied', type: 'Suite' },
+            { number: '301', status: 'clean', type: 'Executive' },
+            { number: '302', status: 'dirty', type: 'Executive' }
+        ];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeRoomGrid();
+        });
+
+        // Navigation function
+        function showSection(sectionId, element) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(sec => sec.classList.remove('active'));
+
+            // Remove active class from nav items
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // Show selected section
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Set active nav item
+            element.classList.add('active');
+
+            // Update Header Title
+            const titles = {
+                'dashboard': 'Operational Overview',
+                'reservations': 'Reservation Management',
+                'housekeeping': 'Housekeeping & Maintenance',
+                'vendors': 'Vendor Management',
+                'billing': 'Financial & Billing',
+                'reports': 'Reports & Analytics'
+            };
+            document.getElementById('page-title').innerText = titles[sectionId];
+        }
+
+        // Initialize room grid
+        function initializeRoomGrid() {
+            const roomGrid = document.getElementById('roomGrid');
+            roomGrid.innerHTML = '';
+            
+            rooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = `room-card ${room.status}`;
+                roomCard.innerHTML = `
+                    <strong>${room.number}</strong><br>
+                    <span style="font-size:12px;">${room.type}</span><br>
+                    <span style="font-size:10px; ${getStatusColor(room.status)}">${getStatusText(room.status)}</span>
+                `;
+                roomCard.onclick = () => updateRoomStatus(room.number);
+                roomGrid.appendChild(roomCard);
+            });
+        }
+
+        // Get status text
+        function getStatusText(status) {
+            const statusMap = {
+                'clean': 'Clean',
+                'dirty': 'Dirty',
+                'occupied': 'Occupied',
+                'maintenance': 'Maintenance'
+            };
+            return statusMap[status] || 'Unknown';
+        }
+
+        // Get status color
+        function getStatusColor(status) {
+            const colorMap = {
+                'clean': 'color:green;',
+                'dirty': 'color:red;',
+                'occupied': 'color:#555;',
+                'maintenance': 'color:orange;'
+            };
+            return colorMap[status] || 'color:gray;';
+        }
+
+        // Update room status
+        function updateRoomStatus(roomNumber) {
+            const room = rooms.find(r => r.number === roomNumber);
+            if (room) {
+                const statuses = ['clean', 'dirty', 'occupied', 'maintenance'];
+                const currentIndex = statuses.indexOf(room.status);
+                room.status = statuses[(currentIndex + 1) % statuses.length];
+                initializeRoomGrid();
+                
+                // Show success message
+                showAlert(`Room ${roomNumber} status updated to ${getStatusText(room.status)}`, 'success');
+            }
+        }
+
+        // Filter rooms by status
+        function filterRooms(status) {
+            const roomGrid = document.getElementById('roomGrid');
+            roomGrid.innerHTML = '';
+            
+            const filteredRooms = status === 'all' ? rooms : rooms.filter(room => room.status === status);
+            
+            filteredRooms.forEach(room => {
+                const roomCard = document.createElement('div');
+                roomCard.className = `room-card ${room.status}`;
+                roomCard.innerHTML = `
+                    <strong>${room.number}</strong><br>
+                    <span style="font-size:12px;">${room.type}</span><br>
+                    <span style="font-size:10px; ${getStatusColor(room.status)}">${getStatusText(room.status)}</span>
+                `;
+                roomCard.onclick = () => updateRoomStatus(room.number);
+                roomGrid.appendChild(roomCard);
+            });
+        }
+
+        // Vendor tab navigation
+        function openVendorTab(tabName, element) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(tab => tab.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content and set active tab
+            document.getElementById(tabName).classList.add('active');
+            element.classList.add('active');
+        }
+
+        // Modal functions
+        function openNewBookingModal() {
+            document.getElementById('newBookingModal').style.display = 'flex';
+        }
+
+        function openNewVendorModal() {
+            document.getElementById('newVendorModal').style.display = 'flex';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Create booking function
+        function createBooking() {
+            // In a real app, this would send data to a server
+            showAlert('New booking created successfully!', 'success');
+            closeModal('newBookingModal');
+        }
+
+        // Add vendor function
+        function addVendor() {
+            // In a real app, this would send data to a server
+            showAlert('New vendor added successfully!', 'success');
+            closeModal('newVendorModal');
+        }
+
+        // Show alert function
+        function showAlert(message, type) {
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                <span>${message}</span>
+                <span class="close-alert" onclick="this.parentElement.remove()">&times;</span>
+            `;
+            
+            // Add alert to the top of the main content
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(alert, mainContent.firstChild);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Mark all notifications as read
+        function markAllAsRead() {
+            showAlert('All notifications marked as read', 'success');
+        }
+
+        // Print room status report
+        function printRoomStatus() {
+            showAlert('Room status report sent to printer', 'success');
+        }
+
+        // Logout function
+        function logout() {
+            if (confirm('Are you sure you want to log out?')) {
+                showAlert('You have been logged out successfully', 'success');
+                // In a real app, this would redirect to login page
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+</body>
+</html>
