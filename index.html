@@ -1,10 +1,12 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grand Stay Hotel - Staff Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* --- 1. SETUP & VISUAL STYLE (From Claireview Image) --- */
         :root {
@@ -83,8 +85,7 @@
             gap: 10px;
         }
 
-                .nav-item {
-            /* Tambahkan properti ini */
+        .nav-item {
             user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -361,6 +362,21 @@
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-green);
+            box-shadow: 0 0 0 2px rgba(26, 77, 62, 0.1);
+        }
+
+        .form-control.error {
+            border-color: var(--status-red);
+        }
+
+        .form-control.success {
+            border-color: var(--status-green);
         }
 
         .form-row {
@@ -372,6 +388,18 @@
             flex: 1;
         }
 
+        /* Error Messages */
+        .error-message {
+            color: var(--status-red);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
         /* Charts */
         .chart-container {
             background: var(--bg-white);
@@ -379,6 +407,12 @@
             padding: 25px;
             box-shadow: var(--shadow);
             margin-bottom: 20px;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            height: 300px;
+            position: relative;
         }
 
         .chart-placeholder {
@@ -616,10 +650,9 @@
             </div>
 
             <div class="chart-container">
-                <h3>Occupancy Trends</h3>
-                <div class="chart-placeholder">
-                    <i class="fas fa-chart-line" style="font-size: 48px; margin-right: 15px;"></i>
-                    Occupancy Rate Chart Visualization (85% This Week)
+                <h3>Occupancy Trends (Last 7 Days)</h3>
+                <div class="chart-wrapper">
+                    <canvas id="occupancyChart"></canvas>
                 </div>
             </div>
         </div>
@@ -1050,13 +1083,13 @@
                 <div class="table-header">
                     <h3>Reports & Analytics</h3>
                     <div class="table-controls">
-                        <select class="form-control" style="width: auto;">
-                            <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
-                            <option>Last 3 Months</option>
-                            <option>Custom Range</option>
+                        <select class="form-control" style="width: auto;" id="reportPeriod" onchange="updateCharts()">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                            <option value="90">Last 3 Months</option>
+                            <option value="custom">Custom Range</option>
                         </select>
-                        <button class="btn">
+                        <button class="btn" onclick="exportReport()">
                             <i class="fas fa-download"></i> Export Report
                         </button>
                     </div>
@@ -1064,17 +1097,15 @@
 
                 <div class="chart-container">
                     <h3>Revenue Overview</h3>
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-bar" style="font-size: 48px; margin-right: 15px;"></i>
-                        Revenue Chart Visualization (RM 15k This Week)
+                    <div class="chart-wrapper">
+                        <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
 
                 <div class="chart-container">
-                    <h3>Occupancy Rate</h3>
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-pie" style="font-size: 48px; margin-right: 15px;"></i>
-                        Occupancy Pie Chart (85% Occupied, 15% Available)
+                    <h3>Room Status Distribution</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="roomStatusChart"></canvas>
                     </div>
                 </div>
 
@@ -1114,37 +1145,44 @@
                 <h3>Create New Booking</h3>
                 <span class="close-modal" onclick="closeModal('newBookingModal')">&times;</span>
             </div>
-            <div class="form-group">
-                <label>Guest Name</label>
-                <input type="text" class="form-control" placeholder="Enter guest name">
-            </div>
-            <div class="form-row">
+            <form id="bookingForm" onsubmit="return validateBookingForm(event)">
                 <div class="form-group">
-                    <label>Check-In Date</label>
-                    <input type="date" class="form-control">
+                    <label for="guestName">Guest Name *</label>
+                    <input type="text" id="guestName" class="form-control" placeholder="Enter guest name">
+                    <div class="error-message" id="guestNameError">Guest name is required</div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="checkInDate">Check-In Date *</label>
+                        <input type="date" id="checkInDate" class="form-control">
+                        <div class="error-message" id="checkInDateError">Check-in date is required</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="checkOutDate">Check-Out Date *</label>
+                        <input type="date" id="checkOutDate" class="form-control">
+                        <div class="error-message" id="checkOutDateError">Check-out date is required</div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label>Check-Out Date</label>
-                    <input type="date" class="form-control">
+                    <label for="roomType">Room Type *</label>
+                    <select id="roomType" class="form-control">
+                        <option value="">Select room type</option>
+                        <option>Standard Twin</option>
+                        <option>Deluxe King</option>
+                        <option>Executive Suite</option>
+                        <option>Presidential Suite</option>
+                    </select>
+                    <div class="error-message" id="roomTypeError">Please select a room type</div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Room Type</label>
-                <select class="form-control">
-                    <option>Standard Twin</option>
-                    <option>Deluxe King</option>
-                    <option>Executive Suite</option>
-                    <option>Presidential Suite</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Special Requests</label>
-                <textarea class="form-control" rows="3" placeholder="Any special requests?"></textarea>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-outline" onclick="closeModal('newBookingModal')">Cancel</button>
-                <button class="btn" onclick="createBooking()">Create Booking</button>
-            </div>
+                <div class="form-group">
+                    <label for="specialRequests">Special Requests</label>
+                    <textarea id="specialRequests" class="form-control" rows="3" placeholder="Any special requests?"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('newBookingModal')">Cancel</button>
+                    <button type="submit" class="btn">Create Booking</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1155,39 +1193,47 @@
                 <h3>Add New Vendor</h3>
                 <span class="close-modal" onclick="closeModal('newVendorModal')">&times;</span>
             </div>
-            <div class="form-group">
-                <label>Vendor Name</label>
-                <input type="text" class="form-control" placeholder="Enter vendor name">
-            </div>
-            <div class="form-group">
-                <label>Service Type</label>
-                <select class="form-control">
-                    <option>Laundry</option>
-                    <option>Food & Beverage</option>
-                    <option>Transportation</option>
-                    <option>Maintenance</option>
-                    <option>IT Services</option>
-                    <option>Other</option>
-                </select>
-            </div>
-            <div class="form-row">
+            <form id="vendorForm" onsubmit="return validateVendorForm(event)">
                 <div class="form-group">
-                    <label>Contact Person</label>
-                    <input type="text" class="form-control" placeholder="Contact name">
+                    <label for="vendorName">Vendor Name *</label>
+                    <input type="text" id="vendorName" class="form-control" placeholder="Enter vendor name">
+                    <div class="error-message" id="vendorNameError">Vendor name is required</div>
                 </div>
                 <div class="form-group">
-                    <label>Phone</label>
-                    <input type="tel" class="form-control" placeholder="Phone number">
+                    <label for="serviceType">Service Type *</label>
+                    <select id="serviceType" class="form-control">
+                        <option value="">Select service type</option>
+                        <option>Laundry</option>
+                        <option>Food & Beverage</option>
+                        <option>Transportation</option>
+                        <option>Maintenance</option>
+                        <option>IT Services</option>
+                        <option>Other</option>
+                    </select>
+                    <div class="error-message" id="serviceTypeError">Please select a service type</div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" class="form-control" placeholder="Email address">
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-outline" onclick="closeModal('newVendorModal')">Cancel</button>
-                <button class="btn" onclick="addVendor()">Add Vendor</button>
-            </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactPerson">Contact Person *</label>
+                        <input type="text" id="contactPerson" class="form-control" placeholder="Contact name">
+                        <div class="error-message" id="contactPersonError">Contact person is required</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone *</label>
+                        <input type="tel" id="phone" class="form-control" placeholder="Phone number">
+                        <div class="error-message" id="phoneError">Valid phone number is required</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" class="form-control" placeholder="Email address">
+                    <div class="error-message" id="emailError">Valid email is required</div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('newVendorModal')">Cancel</button>
+                    <button type="submit" class="btn">Add Vendor</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1208,9 +1254,20 @@
             { number: '302', status: 'dirty', type: 'Executive' }
         ];
 
+        // Chart instances
+        let occupancyChart = null;
+        let revenueChart = null;
+        let roomStatusChart = null;
+
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeRoomGrid();
+            initializeCharts();
+            
+            // Set minimum date to today for booking forms
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('checkInDate').min = today;
+            document.getElementById('checkOutDate').min = today;
         });
 
         // Navigation function
@@ -1239,6 +1296,11 @@
                 'reports': 'Reports & Analytics'
             };
             document.getElementById('page-title').innerText = titles[sectionId];
+
+            // Update charts when reports section is shown
+            if (sectionId === 'reports') {
+                setTimeout(updateCharts, 100);
+            }
         }
 
         // Initialize room grid
@@ -1290,6 +1352,11 @@
                 room.status = statuses[(currentIndex + 1) % statuses.length];
                 initializeRoomGrid();
                 
+                // Update room status chart if it exists
+                if (roomStatusChart) {
+                    updateRoomStatusChart();
+                }
+                
                 // Show success message
                 showAlert(`Room ${roomNumber} status updated to ${getStatusText(room.status)}`, 'success');
             }
@@ -1330,12 +1397,350 @@
             element.classList.add('active');
         }
 
+        // Initialize charts
+        function initializeCharts() {
+            // Occupancy Chart (Line Chart)
+            const occupancyCtx = document.getElementById('occupancyChart').getContext('2d');
+            occupancyChart = new Chart(occupancyCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Occupancy Rate (%)',
+                        data: [78, 82, 85, 87, 85, 90, 88],
+                        borderColor: '#1A4D3E',
+                        backgroundColor: 'rgba(26, 77, 62, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Revenue Chart (Bar Chart)
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            revenueChart = new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Revenue (RM)',
+                        data: [12500, 14200, 13800, 15500],
+                        backgroundColor: [
+                            'rgba(26, 77, 62, 0.8)',
+                            'rgba(20, 59, 48, 0.8)',
+                            'rgba(26, 77, 62, 0.6)',
+                            'rgba(20, 59, 48, 0.6)'
+                        ],
+                        borderColor: [
+                            '#1A4D3E',
+                            '#143B30',
+                            '#1A4D3E',
+                            '#143B30'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'RM ' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Room Status Chart (Doughnut Chart)
+            updateRoomStatusChart();
+        }
+
+        // Update room status chart
+        function updateRoomStatusChart() {
+            const statusCount = {
+                clean: rooms.filter(r => r.status === 'clean').length,
+                dirty: rooms.filter(r => r.status === 'dirty').length,
+                occupied: rooms.filter(r => r.status === 'occupied').length,
+                maintenance: rooms.filter(r => r.status === 'maintenance').length
+            };
+
+            const roomStatusCtx = document.getElementById('roomStatusChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (roomStatusChart) {
+                roomStatusChart.destroy();
+            }
+
+            roomStatusChart = new Chart(roomStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Clean', 'Dirty', 'Occupied', 'Maintenance'],
+                    datasets: [{
+                        data: [statusCount.clean, statusCount.dirty, statusCount.occupied, statusCount.maintenance],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#e74c3c',
+                            '#3498db',
+                            '#f39c12'
+                        ],
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} rooms (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts based on selected period
+        function updateCharts() {
+            const period = document.getElementById('reportPeriod').value;
+            
+            // Update revenue chart data based on period
+            let labels, data;
+            switch(period) {
+                case '7':
+                    labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                    data = [12500, 14200, 13800, 15500, 14800, 16200, 15800];
+                    break;
+                case '30':
+                    labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                    data = [52500, 54200, 53800, 55500];
+                    break;
+                case '90':
+                    labels = ['Month 1', 'Month 2', 'Month 3'];
+                    data = [215000, 225000, 235000];
+                    break;
+                default:
+                    labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                    data = [12500, 14200, 13800, 15500];
+            }
+
+            revenueChart.data.labels = labels;
+            revenueChart.data.datasets[0].data = data;
+            revenueChart.update();
+        }
+
+        // Export report function
+        function exportReport() {
+            showAlert('Report exported successfully!', 'success');
+            // In a real app, this would generate and download a PDF/Excel file
+        }
+
+        // Form validation functions
+        function validateBookingForm(event) {
+            event.preventDefault();
+            let isValid = true;
+
+            // Reset all errors
+            resetFormErrors('bookingForm');
+
+            // Validate guest name
+            const guestName = document.getElementById('guestName');
+            if (!guestName.value.trim()) {
+                showError(guestName, 'guestNameError');
+                isValid = false;
+            } else {
+                showSuccess(guestName);
+            }
+
+            // Validate check-in date
+            const checkInDate = document.getElementById('checkInDate');
+            if (!checkInDate.value) {
+                showError(checkInDate, 'checkInDateError');
+                isValid = false;
+            } else {
+                showSuccess(checkInDate);
+            }
+
+            // Validate check-out date
+            const checkOutDate = document.getElementById('checkOutDate');
+            if (!checkOutDate.value) {
+                showError(checkOutDate, 'checkOutDateError');
+                isValid = false;
+            } else if (checkInDate.value && checkOutDate.value) {
+                const checkIn = new Date(checkInDate.value);
+                const checkOut = new Date(checkOutDate.value);
+                if (checkOut <= checkIn) {
+                    showError(checkOutDate, 'checkOutDateError', 'Check-out date must be after check-in date');
+                    isValid = false;
+                } else {
+                    showSuccess(checkOutDate);
+                }
+            } else {
+                showSuccess(checkOutDate);
+            }
+
+            // Validate room type
+            const roomType = document.getElementById('roomType');
+            if (!roomType.value) {
+                showError(roomType, 'roomTypeError');
+                isValid = false;
+            } else {
+                showSuccess(roomType);
+            }
+
+            if (isValid) {
+                createBooking();
+            }
+            
+            return false;
+        }
+
+        function validateVendorForm(event) {
+            event.preventDefault();
+            let isValid = true;
+
+            // Reset all errors
+            resetFormErrors('vendorForm');
+
+            // Validate vendor name
+            const vendorName = document.getElementById('vendorName');
+            if (!vendorName.value.trim()) {
+                showError(vendorName, 'vendorNameError');
+                isValid = false;
+            } else {
+                showSuccess(vendorName);
+            }
+
+            // Validate service type
+            const serviceType = document.getElementById('serviceType');
+            if (!serviceType.value) {
+                showError(serviceType, 'serviceTypeError');
+                isValid = false;
+            } else {
+                showSuccess(serviceType);
+            }
+
+            // Validate contact person
+            const contactPerson = document.getElementById('contactPerson');
+            if (!contactPerson.value.trim()) {
+                showError(contactPerson, 'contactPersonError');
+                isValid = false;
+            } else {
+                showSuccess(contactPerson);
+            }
+
+            // Validate phone
+            const phone = document.getElementById('phone');
+            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+            if (!phone.value.trim() || !phoneRegex.test(phone.value)) {
+                showError(phone, 'phoneError', 'Please enter a valid phone number');
+                isValid = false;
+            } else {
+                showSuccess(phone);
+            }
+
+            // Validate email
+            const email = document.getElementById('email');
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email.value.trim() || !emailRegex.test(email.value)) {
+                showError(email, 'emailError', 'Please enter a valid email address');
+                isValid = false;
+            } else {
+                showSuccess(email);
+            }
+
+            if (isValid) {
+                addVendor();
+            }
+            
+            return false;
+        }
+
+        // Helper functions for form validation
+        function showError(inputElement, errorId, customMessage = null) {
+            inputElement.classList.add('error');
+            inputElement.classList.remove('success');
+            const errorElement = document.getElementById(errorId);
+            if (customMessage) {
+                errorElement.textContent = customMessage;
+            }
+            errorElement.classList.add('show');
+        }
+
+        function showSuccess(inputElement) {
+            inputElement.classList.remove('error');
+            inputElement.classList.add('success');
+        }
+
+        function resetFormErrors(formId) {
+            const form = document.getElementById(formId);
+            const inputs = form.querySelectorAll('.form-control');
+            const errorMessages = form.querySelectorAll('.error-message');
+            
+            inputs.forEach(input => {
+                input.classList.remove('error', 'success');
+            });
+            
+            errorMessages.forEach(error => {
+                error.classList.remove('show');
+            });
+        }
+
         // Modal functions
         function openNewBookingModal() {
+            resetFormErrors('bookingForm');
             document.getElementById('newBookingModal').style.display = 'flex';
         }
 
         function openNewVendorModal() {
+            resetFormErrors('vendorForm');
             document.getElementById('newVendorModal').style.display = 'flex';
         }
 
@@ -1348,6 +1753,9 @@
             // In a real app, this would send data to a server
             showAlert('New booking created successfully!', 'success');
             closeModal('newBookingModal');
+            
+            // Reset form
+            document.getElementById('bookingForm').reset();
         }
 
         // Add vendor function
@@ -1355,6 +1763,9 @@
             // In a real app, this would send data to a server
             showAlert('New vendor added successfully!', 'success');
             closeModal('newVendorModal');
+            
+            // Reset form
+            document.getElementById('vendorForm').reset();
         }
 
         // Show alert function
@@ -1408,5 +1819,4 @@
     </script>
 
 </body>
-
 </html>
